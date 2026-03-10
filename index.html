@@ -21,6 +21,8 @@
             --text-muted: #a1a1aa;
             --panel-bg: #27272a;
             --border-color: #3f3f46;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
         }
 
         body {
@@ -32,6 +34,7 @@
             color: var(--text-main);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             transition: background-color 0.3s, color 0.3s;
+            overflow: hidden;
         }
 
         /* --- UI Controls --- */
@@ -43,6 +46,7 @@
             border-bottom: 1px solid var(--border-color);
             align-items: center;
             flex-wrap: wrap;
+            z-index: 10;
         }
 
         select, button {
@@ -53,21 +57,44 @@
             background: var(--bg-color);
             color: var(--text-main);
             cursor: pointer;
+            transition: opacity 0.2s;
         }
 
-        button:hover, select:hover {
-            opacity: 0.8;
-        }
+        button:hover, select:hover { opacity: 0.8; }
 
-        .checkbox-group {
+        /* Custom Toggle Switch */
+        .toggle-wrapper {
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 14px;
+            cursor: pointer;
         }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white; transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(16px); }
 
-        /* --- Main Display --- */
-        .main-container {
+        /* --- Screens --- */
+        .screen {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
@@ -75,22 +102,39 @@
             align-items: center;
             text-align: center;
             user-select: none;
+            width: 100%;
         }
 
-        #meaning-display {
-            font-size: 6rem;
+        #practice-screen { display: none; }
+
+        /* --- Text Styling --- */
+        .primary-text {
+            font-size: 5rem;
             font-weight: 800;
-            transition: color 0.15s ease-in-out;
+            transition: color 0.1s;
         }
 
-        #keys-display {
-            font-size: 2rem;
+        .secondary-text {
+            font-size: 1.5rem;
             color: var(--text-muted);
-            margin-top: 10px;
+            margin-top: 15px;
             font-family: monospace;
+            height: 2rem;
         }
 
-        /* --- Footer Stats --- */
+        .feedback-text {
+            font-size: 1.2rem;
+            color: var(--accent-red);
+            margin-top: 10px;
+            height: 1.5rem;
+            font-weight: bold;
+            opacity: 0;
+        }
+
+        .text-success { color: var(--accent-green) !important; }
+        .text-error { color: var(--accent-red) !important; }
+
+        /* --- Stats --- */
         .stats {
             display: flex;
             justify-content: space-around;
@@ -99,83 +143,55 @@
             border-top: 1px solid var(--border-color);
             font-size: 14px;
         }
-
         .stat-box { text-align: center; }
         .stat-value { font-weight: bold; font-size: 18px; margin-top: 4px; }
-
-        /* --- Modal --- */
-        #modal {
-            display: none;
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--panel-bg);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            z-index: 1000;
-            max-height: 80vh;
-            overflow-y: auto;
-            width: 400px;
-        }
-
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-
-        .modal-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .paused-overlay {
-            color: var(--accent-red) !important;
-        }
     </style>
 </head>
 <body>
 
     <div class="controls">
         <select id="mode-select">
-            <option value="1">Mode 1: Mac / Gen Shortcuts</option>
+            <option value="0">Mode 0: Mixed (All)</option>
+            <option value="1" selected>Mode 1: Mac / Gen Shortcuts</option>
             <option value="2">Mode 2: Kanata Numpad</option>
             <option value="3">Mode 3: AeroSpace vs Mac</option>
             <option value="4">Mode 4: Advanced Navigation</option>
         </select>
 
-        <label class="checkbox-group">
-            <input type="checkbox" id="homerow-toggle" checked> Require Home Row Alternation
+        <label class="toggle-wrapper">
+            <div class="switch"><input type="checkbox" id="homerow-toggle" checked><span class="slider"></span></div>
+            Require Alternation
+        </label>
+
+        <label class="toggle-wrapper">
+            <div class="switch"><input type="checkbox" id="hide-hints-toggle"><span class="slider"></span></div>
+            Hide Key Hints
         </label>
 
         <button id="dark-toggle">🌙 Dark Mode</button>
         <button id="pause-btn">⏸ Pause</button>
-        <button id="restart-btn">🔄 Restart / Clear</button>
-        <button id="view-shortcuts-btn">📋 View Shortcuts</button>
+        <button id="restart-btn">🔄 Restart</button>
     </div>
 
-    <div class="main-container">
-        <div id="meaning-display">Press any key</div>
-        <div id="keys-display">to begin practice</div>
+    <div id="validation-screen" class="screen">
+        <div class="primary-text" style="font-size: 3rem;">Validation Check</div>
+        <div class="secondary-text">Press the <b style="color:var(--text-main);">/</b> key to continue.</div>
+        <div class="feedback-text" id="val-feedback" style="opacity: 1; color: var(--text-muted);">
+            (Reminder: Hyper + p activates practice layer)
+        </div>
+        <button id="corne-bypass-btn" style="margin-top: 30px; font-size: 1.2rem;">Bypass (Using Corne)</button>
+    </div>
+
+    <div id="practice-screen" class="screen">
+        <div id="meaning-display" class="primary-text"></div>
+        <div id="keys-display" class="secondary-text"></div>
+        <div id="feedback-display" class="feedback-text"></div>
     </div>
 
     <div class="stats">
         <div class="stat-box">Accuracy<div class="stat-value" id="stat-acc">100%</div></div>
-        <div class="stat-box">Total Keys<div class="stat-value" id="stat-total">0</div></div>
+        <div class="stat-box">Total<div class="stat-value" id="stat-total">0</div></div>
         <div class="stat-box">Most Missed<div class="stat-value" id="stat-missed">None</div></div>
-    </div>
-
-    <div id="modal-overlay"></div>
-    <div id="modal">
-        <h3 style="margin-top: 0;">Dictionary</h3>
-        <div id="modal-content"></div>
-        <button style="margin-top: 15px; width: 100%;" onclick="closeModal()">Close</button>
     </div>
 
     <script>
@@ -191,94 +207,110 @@
 
         const dicts = {
             1: [ // Normal Mac Shortcuts
-                { meaning: 'Select All', keys: 'Cmd + a', target: 'cmd+a' },
-                { meaning: 'New Tab', keys: 'Cmd + t', target: 'cmd+t' },
-                { meaning: 'Redo', keys: 'Cmd + y', target: 'cmd+y' },
-                { meaning: 'Open', keys: 'Cmd + o', target: 'cmd+o' },
-                { meaning: 'Print', keys: 'Cmd + p', target: 'cmd+p' },
-                { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' },
-                { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
-                { meaning: 'Copy', keys: 'Cmd + c', target: 'cmd+c' },
-                { meaning: 'Paste', keys: 'Cmd + v', target: 'cmd+v' },
-                { meaning: 'Undo', keys: 'Cmd + z', target: 'cmd+z' },
-                { meaning: 'Cut', keys: 'Cmd + x', target: 'cmd+x' },
-                { meaning: 'Save', keys: 'Cmd + s', target: 'cmd+s' },
+                { meaning: 'Select All', keys: 'Cmd + a', target: 'cmd+a' }, { meaning: 'New Tab', keys: 'Cmd + t', target: 'cmd+t' },
+                { meaning: 'Redo', keys: 'Cmd + y', target: 'cmd+y' }, { meaning: 'Open', keys: 'Cmd + o', target: 'cmd+o' },
+                { meaning: 'Print', keys: 'Cmd + p', target: 'cmd+p' }, { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' },
+                { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' }, { meaning: 'Copy', keys: 'Cmd + c', target: 'cmd+c' },
+                { meaning: 'Paste', keys: 'Cmd + v', target: 'cmd+v' }, { meaning: 'Undo', keys: 'Cmd + z', target: 'cmd+z' },
+                { meaning: 'Cut', keys: 'Cmd + x', target: 'cmd+x' }, { meaning: 'Save', keys: 'Cmd + s', target: 'cmd+s' },
                 { meaning: 'Reopen Tab', keys: 'Cmd + Shift + t', target: 'cmd+shift+t' },
                 { meaning: 'Hidden Files', keys: 'Cmd + Shift + .', target: 'cmd+shift+.' },
-                { meaning: 'Zoom In', keys: 'Cmd + +', target: 'cmd+=' }, // '+' requires shift, base key is '='
-                { meaning: 'Zoom Out', keys: 'Cmd + -', target: 'cmd+-' },
+                { meaning: 'Zoom In', keys: 'Cmd + +', target: 'cmd+=' }, { meaning: 'Zoom Out', keys: 'Cmd + -', target: 'cmd+-' },
             ],
-            2: [ // Numpad (Kanata outputs direct numbers)
-                { meaning: 'Number 1', keys: 'Hold g + u', target: '1' },
-                { meaning: 'Number 2', keys: 'Hold g + i', target: '2' },
-                { meaning: 'Number 3', keys: 'Hold g + o', target: '3' },
-                { meaning: 'Number 4', keys: 'Hold g + j', target: '4' },
-                { meaning: 'Number 5', keys: 'Hold g + k', target: '5' },
-                { meaning: 'Number 6', keys: 'Hold g + l', target: '6' },
-                { meaning: 'Number 7', keys: 'Hold g + m', target: '7' },
-                { meaning: 'Number 8', keys: 'Hold g + ,', target: '8' },
-                { meaning: 'Number 9', keys: 'Hold g + .', target: '9' },
-                { meaning: 'Number 0', keys: 'Hold g + p', target: '0' },
+            2: [ // Numpad
+                { meaning: 'Number 1', keys: 'Hold g + u', target: '1' }, { meaning: 'Number 2', keys: 'Hold g + i', target: '2' },
+                { meaning: 'Number 3', keys: 'Hold g + o', target: '3' }, { meaning: 'Number 4', keys: 'Hold g + j', target: '4' },
+                { meaning: 'Number 5', keys: 'Hold g + k', target: '5' }, { meaning: 'Number 6', keys: 'Hold g + l', target: '6' },
+                { meaning: 'Number 7', keys: 'Hold g + m', target: '7' }, { meaning: 'Number 8', keys: 'Hold g + ,', target: '8' },
+                { meaning: 'Number 9', keys: 'Hold g + .', target: '9' }, { meaning: 'Number 0', keys: 'Hold g + p', target: '0' },
             ],
             3: [ // AeroSpace vs Mac
-                { meaning: 'Workspace 1', keys: 'Alt + 1', target: 'alt+1' },
-                { meaning: 'Workspace 2', keys: 'Alt + 2', target: 'alt+2' },
-                { meaning: 'Workspace 3', keys: 'Alt + 3', target: 'alt+3' },
-                { meaning: 'Workspace 4', keys: 'Alt + 4', target: 'alt+4' },
-                { meaning: 'Workspace 5', keys: 'Alt + 5', target: 'alt+5' },
-                { meaning: 'Workspace 6', keys: 'Alt + 6', target: 'alt+6' },
-                { meaning: 'Workspace Q', keys: 'Alt + q', target: 'alt+q' },
-                { meaning: 'Workspace W', keys: 'Alt + w', target: 'alt+w' },
-                { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' },
-                { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
+                { meaning: 'Workspace 1', keys: 'Alt + 1', target: 'alt+1' }, { meaning: 'Workspace 2', keys: 'Alt + 2', target: 'alt+2' },
+                { meaning: 'Workspace 3', keys: 'Alt + 3', target: 'alt+3' }, { meaning: 'Workspace 4', keys: 'Alt + 4', target: 'alt+4' },
+                { meaning: 'Workspace 5', keys: 'Alt + 5', target: 'alt+5' }, { meaning: 'Workspace 6', keys: 'Alt + 6', target: 'alt+6' },
+                { meaning: 'Workspace Q', keys: 'Alt + q', target: 'alt+q' }, { meaning: 'Workspace W', keys: 'Alt + w', target: 'alt+w' },
+                { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' }, { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
             ]
         };
 
-        // Mode 4 = Mode 3 + Nav
-        dicts[4] = [
-            ...dicts[3],
-            { meaning: 'Focus Left', keys: 'Alt + h', target: 'alt+h' },
-            { meaning: 'Focus Down', keys: 'Alt + j', target: 'alt+j' },
-            { meaning: 'Focus Up', keys: 'Alt + k', target: 'alt+k' },
-            { meaning: 'Focus Right', keys: 'Alt + l', target: 'alt+l' },
-            { meaning: 'Resize Larger', keys: 'Alt + Shift + +', target: 'alt+shift+=' },
-            { meaning: 'Resize Smaller', keys: 'Alt + Shift + -', target: 'alt+shift+-' }
+        // Build Mode 4 and Mode 0 dynamically
+        dicts[4] = [...dicts[3], 
+            { meaning: 'Focus Left', keys: 'Alt + h', target: 'alt+h' }, { meaning: 'Focus Down', keys: 'Alt + j', target: 'alt+j' },
+            { meaning: 'Focus Up', keys: 'Alt + k', target: 'alt+k' }, { meaning: 'Focus Right', keys: 'Alt + l', target: 'alt+l' },
+            { meaning: 'Resize Larger', keys: 'Alt + Shift + +', target: 'alt+shift+=' }, { meaning: 'Resize Smaller', keys: 'Alt + Shift + -', target: 'alt+shift+-' }
         ];
+        dicts[0] = [...dicts[1], ...dicts[2], ...dicts[4]];
 
-        // Kanata modifiers (mapped to Practice Layer F-keys)
-        const modMap = {
-            'F13': 'shift', 'F20': 'shift',
-            'F14': 'ctrl',  'F19': 'ctrl',
-            'F15': 'alt',   'F18': 'alt',
-            'F16': 'cmd',   'F17': 'cmd'
-        };
+        const modMap = { 'F13': 'shift', 'F20': 'shift', 'F14': 'ctrl', 'F19': 'ctrl', 'F15': 'alt', 'F18': 'alt', 'F16': 'cmd', 'F17': 'cmd' };
 
         // --- Application State ---
+        let isValidated = false;
         let activeMods = new Set();
         let activeDict = dicts[1];
+        let shuffleBag = [];
         let currentPrompt = null;
-        let isShortcutTurn = true; // Determines if next is Shortcut or Homerow
+        let isShortcutTurn = true; 
         let retryQueue = [];
         let hasFailedCurrent = false;
-        let gameStarted = false;
         let isPaused = false;
-        
-        // Stats
         let stats = { correct: 0, total: 0, misses: {} };
 
-        // DOM Elements
+        // --- DOM Elements ---
+        const valScreen = document.getElementById('validation-screen');
+        const pracScreen = document.getElementById('practice-screen');
         const displayMeaning = document.getElementById('meaning-display');
         const displayKeys = document.getElementById('keys-display');
+        const displayFeedback = document.getElementById('feedback-display');
         const hrToggle = document.getElementById('homerow-toggle');
+        const hintsToggle = document.getElementById('hide-hints-toggle');
 
-        // --- Helper Functions ---
-        const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        
+        // --- Core Functions ---
+        function formatPressedString(mods, key) {
+            let arr = [];
+            if (mods.has('cmd')) arr.push('Cmd');
+            if (mods.has('ctrl')) arr.push('Ctrl');
+            if (mods.has('alt')) arr.push('Alt');
+            if (mods.has('shift')) arr.push('Shift');
+            if (key !== 'unidentified' && !modMap[key.toUpperCase()]) arr.push(key);
+            return arr.join(' + ') || "Unknown";
+        }
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function getNextFromBag() {
+            if (shuffleBag.length === 0) shuffleBag = shuffleArray(activeDict);
+            return shuffleBag.pop();
+        }
+
+        function unlockGame() {
+            isValidated = true;
+            valScreen.style.display = 'none';
+            pracScreen.style.display = 'flex';
+            resetGame();
+        }
+
+        function resetGame() {
+            stats = { correct: 0, total: 0, misses: {} };
+            retryQueue = [];
+            shuffleBag = [];
+            activeMods.clear();
+            hasFailedCurrent = false;
+            displayFeedback.style.opacity = '0';
+            updateStatsUI();
+            setNextPrompt();
+        }
+
         function updateStatsUI() {
             const acc = stats.total === 0 ? 100 : Math.round((stats.correct / stats.total) * 100);
             document.getElementById('stat-acc').innerText = `${acc}%`;
             document.getElementById('stat-total').innerText = stats.total;
-            
             if (Object.keys(stats.misses).length === 0) {
                 document.getElementById('stat-missed').innerText = "None";
             } else {
@@ -287,56 +319,43 @@
             }
         }
 
-        function resetGame() {
-            stats = { correct: 0, total: 0, misses: {} };
-            retryQueue = [];
-            activeMods.clear();
-            hasFailedCurrent = false;
-            updateStatsUI();
-            setNextPrompt();
-        }
-
         function setNextPrompt() {
             if (isPaused) return;
             hasFailedCurrent = false;
+            displayMeaning.className = 'primary-text'; // Reset color
 
-            const useHomeRow = hrToggle.checked;
-
-            if (useHomeRow && !isShortcutTurn) {
-                currentPrompt = pickRandom(homeRowKeys);
+            if (hrToggle.checked && !isShortcutTurn) {
+                currentPrompt = homeRowKeys[Math.floor(Math.random() * homeRowKeys.length)];
             } else {
-                if (retryQueue.length > 0) {
-                    currentPrompt = retryQueue.shift();
-                } else {
-                    currentPrompt = pickRandom(activeDict);
-                }
+                currentPrompt = retryQueue.length > 0 ? retryQueue.shift() : getNextFromBag();
             }
 
             displayMeaning.innerText = currentPrompt.meaning;
             displayKeys.innerText = currentPrompt.keys;
-            displayMeaning.style.color = 'var(--text-main)';
+            displayKeys.style.visibility = hintsToggle.checked ? 'hidden' : 'visible';
         }
 
-        // --- Core Key Logic ---
+        // --- Event Listeners ---
         window.addEventListener('keydown', (e) => {
             e.preventDefault(); 
             if (e.repeat || isPaused) return;
 
-            if (!gameStarted) {
-                gameStarted = true;
-                setNextPrompt();
+            // Phase 1: Validation
+            if (!isValidated) {
+                if (e.key === 'd') {
+                    unlockGame();
+                } else if (e.key === '/') {
+                    document.getElementById('val-feedback').innerText = "❌ Standard keyboard detected. Activate Practice Layer (Hyper + p).";
+                    document.getElementById('val-feedback').style.color = "var(--accent-red)";
+                }
                 return;
             }
 
-            // Track Kanata Modifiers
-            if (modMap[e.key]) {
-                activeMods.add(modMap[e.key]);
-                return;
-            }
+            // Phase 2: Practice
+            if (modMap[e.key]) { activeMods.add(modMap[e.key]); return; }
 
-            // Evaluate standard keypress
             let key = e.key.toLowerCase();
-            if (key === '+') key = '='; // Normalize shift+equal to match target configs
+            if (key === '+') key = '=';
 
             let chordArr = [];
             if (activeMods.has('cmd')) chordArr.push('cmd');
@@ -348,33 +367,37 @@
             let pressedString = chordArr.join('+');
 
             if (pressedString === currentPrompt.target) {
-                // Correct
-                displayMeaning.style.color = 'var(--accent-green)';
+                // Success
+                displayMeaning.className = 'primary-text text-success';
+                displayFeedback.style.opacity = '0';
                 stats.correct++;
                 stats.total++;
-                
                 if (hrToggle.checked) isShortcutTurn = !isShortcutTurn;
                 activeMods.clear(); 
-                
                 setTimeout(setNextPrompt, 150);
             } else {
-                // Incorrect
-                displayMeaning.style.color = 'var(--accent-red)';
-                stats.total++;
+                // Failure
+                displayMeaning.className = 'primary-text text-error';
                 
-                // Log miss
-                const missKey = currentPrompt.meaning;
-                stats.misses[missKey] = (stats.misses[missKey] || 0) + 1;
+                // Show what they actually pressed
+                displayFeedback.innerText = `You pressed: ${formatPressedString(activeMods, e.key)}`;
+                displayFeedback.style.opacity = '1';
 
-                if (!hasFailedCurrent && currentPrompt.meaning !== 'Home Row') {
-                    // Queue 3 reps for mistakes
-                    retryQueue.push(currentPrompt, currentPrompt, currentPrompt);
-                    hasFailedCurrent = true;
+                // If hints are hidden, reveal them on a mistake
+                if (hintsToggle.checked) displayKeys.style.visibility = 'visible';
+
+                stats.total++;
+                if (currentPrompt.meaning !== 'Home Row') {
+                    stats.misses[currentPrompt.meaning] = (stats.misses[currentPrompt.meaning] || 0) + 1;
+                    if (!hasFailedCurrent) {
+                        retryQueue.push(currentPrompt, currentPrompt, currentPrompt);
+                        hasFailedCurrent = true;
+                    }
                 }
 
                 setTimeout(() => {
-                    if (!isPaused) displayMeaning.style.color = 'var(--text-main)';
-                }, 200);
+                    if (!isPaused) displayMeaning.className = 'primary-text';
+                }, 300);
             }
             updateStatsUI();
         });
@@ -383,28 +406,28 @@
             if (modMap[e.key]) activeMods.delete(modMap[e.key]);
         });
 
-        // --- UI Listeners ---
+        // UI Listeners
+        document.getElementById('corne-bypass-btn').addEventListener('click', unlockGame);
+        
         document.getElementById('mode-select').addEventListener('change', (e) => {
             activeDict = dicts[e.target.value];
             isShortcutTurn = true;
             resetGame();
         });
 
-        document.getElementById('restart-btn').addEventListener('click', () => {
-            isShortcutTurn = true;
-            resetGame();
-        });
+        document.getElementById('restart-btn').addEventListener('click', () => { isShortcutTurn = true; resetGame(); });
+        
+        document.getElementById('hints-toggle')
 
         document.getElementById('pause-btn').addEventListener('click', (e) => {
             isPaused = !isPaused;
             if (isPaused) {
                 e.target.innerText = '▶ Resume';
                 displayMeaning.innerText = "Paused";
-                displayKeys.innerText = "";
-                displayMeaning.classList.add('paused-overlay');
+                displayKeys.style.visibility = 'hidden';
+                displayFeedback.style.opacity = '0';
             } else {
                 e.target.innerText = '⏸ Pause';
-                displayMeaning.classList.remove('paused-overlay');
                 setNextPrompt();
             }
         });
@@ -413,29 +436,10 @@
             document.body.classList.toggle('dark-mode');
         });
 
-        document.getElementById('homerow-toggle').addEventListener('change', (e) => {
-            isShortcutTurn = true; 
-            resetGame();
+        hrToggle.addEventListener('change', () => { isShortcutTurn = true; resetGame(); });
+        hintsToggle.addEventListener('change', () => { 
+            if (isValidated && !isPaused) displayKeys.style.visibility = hintsToggle.checked ? 'hidden' : 'visible'; 
         });
-
-        // Modal Logic
-        const modal = document.getElementById('modal');
-        const overlay = document.getElementById('modal-overlay');
-
-        document.getElementById('view-shortcuts-btn').addEventListener('click', () => {
-            const content = document.getElementById('modal-content');
-            content.innerHTML = '';
-            activeDict.forEach(item => {
-                content.innerHTML += `<div class="modal-item"><span><b>${item.meaning}</b></span><span style="color:var(--text-muted); font-family:monospace;">${item.keys}</span></div>`;
-            });
-            modal.style.display = 'block';
-            overlay.style.display = 'block';
-        });
-
-        window.closeModal = () => {
-            modal.style.display = 'none';
-            overlay.style.display = 'none';
-        }
     </script>
 </body>
 </html>
