@@ -154,10 +154,10 @@
             <input type="checkbox" id="homerow-toggle" checked> Require Home Row Alternation
         </label>
 
-        <button id="dark-toggle">?? Dark Mode</button>
-        <button id="pause-btn">? Pause</button>
-        <button id="restart-btn">?? Restart / Clear</button>
-        <button id="view-shortcuts-btn">?? View Shortcuts</button>
+        <button id="dark-toggle">🌙 Dark Mode</button>
+        <button id="pause-btn">⏸ Pause</button>
+        <button id="restart-btn">🔄 Restart / Clear</button>
+        <button id="view-shortcuts-btn">📋 View Shortcuts</button>
     </div>
 
     <div class="main-container">
@@ -398,12 +398,12 @@
         document.getElementById('pause-btn').addEventListener('click', (e) => {
             isPaused = !isPaused;
             if (isPaused) {
-                e.target.innerText = '? Resume';
+                e.target.innerText = '▶ Resume';
                 displayMeaning.innerText = "Paused";
                 displayKeys.innerText = "";
                 displayMeaning.classList.add('paused-overlay');
             } else {
-                e.target.innerText = '? Pause';
+                e.target.innerText = '⏸ Pause';
                 displayMeaning.classList.remove('paused-overlay');
                 setNextPrompt();
             }
