@@ -3,100 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanata Chord Practice</title>
+    <title>Kanata Intent Trainer</title>
     <style>
+        :root {
+            --bg-color: #f4f4f5;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --panel-bg: #ffffff;
+            --border-color: #e5e7eb;
+        }
+
+        body.dark-mode {
+            --bg-color: #18181b;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --panel-bg: #27272a;
+            --border-color: #3f3f46;
+        }
+
         body {
             margin: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             height: 100vh;
-            background-color: #f4f4f5;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
         }
 
-        #display {
-            font-size: 8rem;
-            font-weight: bold;
-            color: black;
-            transition: color 0.15s ease-in-out;
+        /* --- UI Controls --- */
+        .controls {
+            display: flex;
+            gap: 15px;
+            padding: 15px 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        button:hover, select:hover {
+            opacity: 0.8;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        /* --- Main Display --- */
+        .main-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
             user-select: none;
         }
 
-        #status {
-            position: absolute;
-            bottom: 2rem;
-            font-size: 1.2rem;
-            color: #666;
+        #meaning-display {
+            font-size: 6rem;
+            font-weight: 800;
+            transition: color 0.15s ease-in-out;
+        }
+
+        #keys-display {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        /* --- Footer Stats --- */
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .stat-box { text-align: center; }
+        .stat-value { font-weight: bold; font-size: 18px; margin-top: 4px; }
+
+        /* --- Modal --- */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--panel-bg);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 400px;
+        }
+
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .modal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .paused-overlay {
+            color: var(--accent-red) !important;
         }
     </style>
 </head>
 <body>
 
-    <div id="display">Press any key to start</div>
-    <div id="status">Mode: Waiting...</div>
+    <div class="controls">
+        <select id="mode-select">
+            <option value="1">Mode 1: Mac / Gen Shortcuts</option>
+            <option value="2">Mode 2: Kanata Numpad</option>
+            <option value="3">Mode 3: AeroSpace vs Mac</option>
+            <option value="4">Mode 4: Advanced Navigation</option>
+        </select>
+
+        <label class="checkbox-group">
+            <input type="checkbox" id="homerow-toggle" checked> Require Home Row Alternation
+        </label>
+
+        <button id="dark-toggle">?? Dark Mode</button>
+        <button id="pause-btn">? Pause</button>
+        <button id="restart-btn">?? Restart / Clear</button>
+        <button id="view-shortcuts-btn">?? View Shortcuts</button>
+    </div>
+
+    <div class="main-container">
+        <div id="meaning-display">Press any key</div>
+        <div id="keys-display">to begin practice</div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">Accuracy<div class="stat-value" id="stat-acc">100%</div></div>
+        <div class="stat-box">Total Keys<div class="stat-value" id="stat-total">0</div></div>
+        <div class="stat-box">Most Missed<div class="stat-value" id="stat-missed">None</div></div>
+    </div>
+
+    <div id="modal-overlay"></div>
+    <div id="modal">
+        <h3 style="margin-top: 0;">Dictionary</h3>
+        <div id="modal-content"></div>
+        <button style="margin-top: 15px; width: 100%;" onclick="closeModal()">Close</button>
+    </div>
 
     <script>
-        // --- Configuration Data ---
-        const homeRow = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ',', '.'];
-        const shortcuts = [
-            'Cmd + a', 'Cmd + t', 'Cmd + y', 'Cmd + o', 'Cmd + p', 'Cmd + q', 
-            'Cmd + w', 'Cmd + c', 'Cmd + v', 'Cmd + z', 'Cmd + x', 'Cmd + s',
-            'Alt + 1', 'Alt + 2', 'Alt + 3', 'Alt + 4', 'Alt + 5', 'Alt + 6', 
-            'Alt + q', 'Alt + w',
-            'Cmd + Shift + t', 'Cmd + Shift + .'
+        // --- Shortcut Dictionaries ---
+        const homeRowKeys = [
+            { meaning: 'Home Row', keys: 'a', target: 'a' }, { meaning: 'Home Row', keys: 's', target: 's' },
+            { meaning: 'Home Row', keys: 'd', target: 'd' }, { meaning: 'Home Row', keys: 'f', target: 'f' },
+            { meaning: 'Home Row', keys: 'g', target: 'g' }, { meaning: 'Home Row', keys: 'h', target: 'h' },
+            { meaning: 'Home Row', keys: 'j', target: 'j' }, { meaning: 'Home Row', keys: 'k', target: 'k' },
+            { meaning: 'Home Row', keys: 'l', target: 'l' }, { meaning: 'Home Row', keys: ',', target: ',' },
+            { meaning: 'Home Row', keys: '.', target: '.' }
         ];
 
-        // Map Kanata F-keys back to logical modifiers
-        const modMap = {
-            'F13': 'Shift', 'F20': 'Shift',
-            'F14': 'Ctrl',  'F19': 'Ctrl',
-            'F15': 'Alt',   'F18': 'Alt',
-            'F16': 'Cmd',   'F17': 'Cmd'
+        const dicts = {
+            1: [ // Normal Mac Shortcuts
+                { meaning: 'Select All', keys: 'Cmd + a', target: 'cmd+a' },
+                { meaning: 'New Tab', keys: 'Cmd + t', target: 'cmd+t' },
+                { meaning: 'Redo', keys: 'Cmd + y', target: 'cmd+y' },
+                { meaning: 'Open', keys: 'Cmd + o', target: 'cmd+o' },
+                { meaning: 'Print', keys: 'Cmd + p', target: 'cmd+p' },
+                { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' },
+                { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
+                { meaning: 'Copy', keys: 'Cmd + c', target: 'cmd+c' },
+                { meaning: 'Paste', keys: 'Cmd + v', target: 'cmd+v' },
+                { meaning: 'Undo', keys: 'Cmd + z', target: 'cmd+z' },
+                { meaning: 'Cut', keys: 'Cmd + x', target: 'cmd+x' },
+                { meaning: 'Save', keys: 'Cmd + s', target: 'cmd+s' },
+                { meaning: 'Reopen Tab', keys: 'Cmd + Shift + t', target: 'cmd+shift+t' },
+                { meaning: 'Hidden Files', keys: 'Cmd + Shift + .', target: 'cmd+shift+.' },
+                { meaning: 'Zoom In', keys: 'Cmd + +', target: 'cmd+=' }, // '+' requires shift, base key is '='
+                { meaning: 'Zoom Out', keys: 'Cmd + -', target: 'cmd+-' },
+            ],
+            2: [ // Numpad (Kanata outputs direct numbers)
+                { meaning: 'Number 1', keys: 'Hold g + u', target: '1' },
+                { meaning: 'Number 2', keys: 'Hold g + i', target: '2' },
+                { meaning: 'Number 3', keys: 'Hold g + o', target: '3' },
+                { meaning: 'Number 4', keys: 'Hold g + j', target: '4' },
+                { meaning: 'Number 5', keys: 'Hold g + k', target: '5' },
+                { meaning: 'Number 6', keys: 'Hold g + l', target: '6' },
+                { meaning: 'Number 7', keys: 'Hold g + m', target: '7' },
+                { meaning: 'Number 8', keys: 'Hold g + ,', target: '8' },
+                { meaning: 'Number 9', keys: 'Hold g + .', target: '9' },
+                { meaning: 'Number 0', keys: 'Hold g + p', target: '0' },
+            ],
+            3: [ // AeroSpace vs Mac
+                { meaning: 'Workspace 1', keys: 'Alt + 1', target: 'alt+1' },
+                { meaning: 'Workspace 2', keys: 'Alt + 2', target: 'alt+2' },
+                { meaning: 'Workspace 3', keys: 'Alt + 3', target: 'alt+3' },
+                { meaning: 'Workspace 4', keys: 'Alt + 4', target: 'alt+4' },
+                { meaning: 'Workspace 5', keys: 'Alt + 5', target: 'alt+5' },
+                { meaning: 'Workspace 6', keys: 'Alt + 6', target: 'alt+6' },
+                { meaning: 'Workspace Q', keys: 'Alt + q', target: 'alt+q' },
+                { meaning: 'Workspace W', keys: 'Alt + w', target: 'alt+w' },
+                { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' },
+                { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
+            ]
         };
 
-        // --- State Variables ---
+        // Mode 4 = Mode 3 + Nav
+        dicts[4] = [
+            ...dicts[3],
+            { meaning: 'Focus Left', keys: 'Alt + h', target: 'alt+h' },
+            { meaning: 'Focus Down', keys: 'Alt + j', target: 'alt+j' },
+            { meaning: 'Focus Up', keys: 'Alt + k', target: 'alt+k' },
+            { meaning: 'Focus Right', keys: 'Alt + l', target: 'alt+l' },
+            { meaning: 'Resize Larger', keys: 'Alt + Shift + +', target: 'alt+shift+=' },
+            { meaning: 'Resize Smaller', keys: 'Alt + Shift + -', target: 'alt+shift+-' }
+        ];
+
+        // Kanata modifiers (mapped to Practice Layer F-keys)
+        const modMap = {
+            'F13': 'shift', 'F20': 'shift',
+            'F14': 'ctrl',  'F19': 'ctrl',
+            'F15': 'alt',   'F18': 'alt',
+            'F16': 'cmd',   'F17': 'cmd'
+        };
+
+        // --- Application State ---
         let activeMods = new Set();
-        let isShortcutTurn = false;
-        let currentTarget = "";
+        let activeDict = dicts[1];
+        let currentPrompt = null;
+        let isShortcutTurn = true; // Determines if next is Shortcut or Homerow
         let retryQueue = [];
         let hasFailedCurrent = false;
         let gameStarted = false;
+        let isPaused = false;
+        
+        // Stats
+        let stats = { correct: 0, total: 0, misses: {} };
 
-        const displayEl = document.getElementById('display');
-        const statusEl = document.getElementById('status');
+        // DOM Elements
+        const displayMeaning = document.getElementById('meaning-display');
+        const displayKeys = document.getElementById('keys-display');
+        const hrToggle = document.getElementById('homerow-toggle');
 
         // --- Helper Functions ---
         const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
         
-        const normalizeTarget = (str) => {
-            // Converts "Cmd + Shift + t" into "cmd+shift+t" for exact matching
-            return str.toLowerCase().replace(/\s+/g, '');
-        };
-
-        function setNextPrompt() {
-            hasFailedCurrent = false;
-
-            if (isShortcutTurn) {
-                statusEl.innerText = "Mode: Shortcut";
-                if (retryQueue.length > 0) {
-                    currentTarget = retryQueue.shift();
-                } else {
-                    currentTarget = pickRandom(shortcuts);
-                }
+        function updateStatsUI() {
+            const acc = stats.total === 0 ? 100 : Math.round((stats.correct / stats.total) * 100);
+            document.getElementById('stat-acc').innerText = `${acc}%`;
+            document.getElementById('stat-total').innerText = stats.total;
+            
+            if (Object.keys(stats.misses).length === 0) {
+                document.getElementById('stat-missed').innerText = "None";
             } else {
-                statusEl.innerText = "Mode: Home Row Recovery";
-                currentTarget = pickRandom(homeRow);
+                const worst = Object.keys(stats.misses).reduce((a, b) => stats.misses[a] > stats.misses[b] ? a : b);
+                document.getElementById('stat-missed').innerText = `${worst} (${stats.misses[worst]})`;
             }
-
-            displayEl.innerText = currentTarget;
-            displayEl.style.color = 'black';
         }
 
-        // --- Event Listeners ---
+        function resetGame() {
+            stats = { correct: 0, total: 0, misses: {} };
+            retryQueue = [];
+            activeMods.clear();
+            hasFailedCurrent = false;
+            updateStatsUI();
+            setNextPrompt();
+        }
+
+        function setNextPrompt() {
+            if (isPaused) return;
+            hasFailedCurrent = false;
+
+            const useHomeRow = hrToggle.checked;
+
+            if (useHomeRow && !isShortcutTurn) {
+                currentPrompt = pickRandom(homeRowKeys);
+            } else {
+                if (retryQueue.length > 0) {
+                    currentPrompt = retryQueue.shift();
+                } else {
+                    currentPrompt = pickRandom(activeDict);
+                }
+            }
+
+            displayMeaning.innerText = currentPrompt.meaning;
+            displayKeys.innerText = currentPrompt.keys;
+            displayMeaning.style.color = 'var(--text-main)';
+        }
+
+        // --- Core Key Logic ---
         window.addEventListener('keydown', (e) => {
-            e.preventDefault(); // Prevent accidental browser shortcuts
-            if (e.repeat) return; // Ignore keys held down repeating natively
+            e.preventDefault(); 
+            if (e.repeat || isPaused) return;
 
             if (!gameStarted) {
                 gameStarted = true;
@@ -104,56 +328,114 @@
                 return;
             }
 
-            // Register Modifier
+            // Track Kanata Modifiers
             if (modMap[e.key]) {
                 activeMods.add(modMap[e.key]);
                 return;
             }
 
-            // If a standard key is pressed, evaluate the total chord
+            // Evaluate standard keypress
             let key = e.key.toLowerCase();
+            if (key === '+') key = '='; // Normalize shift+equal to match target configs
+
             let chordArr = [];
-            
-            // Order matters for the string match
-            if (activeMods.has('Cmd')) chordArr.push('cmd');
-            if (activeMods.has('Ctrl')) chordArr.push('ctrl');
-            if (activeMods.has('Alt')) chordArr.push('alt');
-            if (activeMods.has('Shift')) chordArr.push('shift');
+            if (activeMods.has('cmd')) chordArr.push('cmd');
+            if (activeMods.has('ctrl')) chordArr.push('ctrl');
+            if (activeMods.has('alt')) chordArr.push('alt');
+            if (activeMods.has('shift')) chordArr.push('shift');
             chordArr.push(key);
 
             let pressedString = chordArr.join('+');
-            let targetString = normalizeTarget(currentTarget);
 
-            if (pressedString === targetString) {
-                // Success State
-                displayEl.style.color = '#10b981'; // Green
-                isShortcutTurn = !isShortcutTurn; // Alternate modes
+            if (pressedString === currentPrompt.target) {
+                // Correct
+                displayMeaning.style.color = 'var(--accent-green)';
+                stats.correct++;
+                stats.total++;
                 
-                // Clear modifiers to prevent sticky keys on transition
+                if (hrToggle.checked) isShortcutTurn = !isShortcutTurn;
                 activeMods.clear(); 
                 
                 setTimeout(setNextPrompt, 150);
             } else {
-                // Error State
-                displayEl.style.color = '#ef4444'; // Red
+                // Incorrect
+                displayMeaning.style.color = 'var(--accent-red)';
+                stats.total++;
                 
-                // Queue the penalty repetitions if it's a shortcut and hasn't been queued yet this turn
-                if (isShortcutTurn && !hasFailedCurrent) {
-                    retryQueue.push(currentTarget, currentTarget, currentTarget);
+                // Log miss
+                const missKey = currentPrompt.meaning;
+                stats.misses[missKey] = (stats.misses[missKey] || 0) + 1;
+
+                if (!hasFailedCurrent && currentPrompt.meaning !== 'Home Row') {
+                    // Queue 3 reps for mistakes
+                    retryQueue.push(currentPrompt, currentPrompt, currentPrompt);
                     hasFailedCurrent = true;
                 }
 
                 setTimeout(() => {
-                    displayEl.style.color = 'black';
+                    if (!isPaused) displayMeaning.style.color = 'var(--text-main)';
                 }, 200);
             }
+            updateStatsUI();
         });
 
         window.addEventListener('keyup', (e) => {
-            if (modMap[e.key]) {
-                activeMods.delete(modMap[e.key]);
+            if (modMap[e.key]) activeMods.delete(modMap[e.key]);
+        });
+
+        // --- UI Listeners ---
+        document.getElementById('mode-select').addEventListener('change', (e) => {
+            activeDict = dicts[e.target.value];
+            isShortcutTurn = true;
+            resetGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            isShortcutTurn = true;
+            resetGame();
+        });
+
+        document.getElementById('pause-btn').addEventListener('click', (e) => {
+            isPaused = !isPaused;
+            if (isPaused) {
+                e.target.innerText = '? Resume';
+                displayMeaning.innerText = "Paused";
+                displayKeys.innerText = "";
+                displayMeaning.classList.add('paused-overlay');
+            } else {
+                e.target.innerText = '? Pause';
+                displayMeaning.classList.remove('paused-overlay');
+                setNextPrompt();
             }
         });
+
+        document.getElementById('dark-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+        document.getElementById('homerow-toggle').addEventListener('change', (e) => {
+            isShortcutTurn = true; 
+            resetGame();
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('modal');
+        const overlay = document.getElementById('modal-overlay');
+
+        document.getElementById('view-shortcuts-btn').addEventListener('click', () => {
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '';
+            activeDict.forEach(item => {
+                content.innerHTML += `<div class="modal-item"><span><b>${item.meaning}</b></span><span style="color:var(--text-muted); font-family:monospace;">${item.keys}</span></div>`;
+            });
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        });
+
+        window.closeModal = () => {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
     </script>
 </body>
 </html>
