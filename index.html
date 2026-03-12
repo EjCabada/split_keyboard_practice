@@ -3,239 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanata Intent Trainer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <title>Kanata Intent Trainer (Nvim Edition)</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
+        /* --- Themes (Tokyonight Dark / Nord Light) --- */
         :root {
-            /* Light Mode (High Contrast) */
-            --bg-color: #f4f4f5; 
-            --panel-bg: #ffffff;
-            --text-main: #111827; 
-            --text-muted: #6b7280;
-            --border-color: #d1d5db;
-            --accent-green: #059669; 
-            --accent-red: #dc2626;
-            --accent-blue: #2563eb;
-            --toggle-bg: #cbd5e1;
-            
-            /* Statusline Light */
-            --sl-bg: #e2e8f0;
-            --sl-mode-bg: var(--accent-blue);
-            --sl-mode-fg: #ffffff;
+            --bg: #eceff4; --bg-panel: #e5e9f0; --fg: #2e3440; --fg-muted: #4c566a;
+            --border: #d8dee9; --accent-green: #a3be8c; --accent-red: #bf616a;
+            --accent-blue: #5e81ac; --lualine-a: #5e81ac; --lualine-b: #81a1c1;
+            --lualine-c: #e5e9f0; --lualine-fg: #eceff4;
         }
-
         body.dark-mode {
-            /* AstroNvim / Catppuccin Macchiato Vibe */
-            --bg-color: #1e2030; 
-            --panel-bg: #24273a;
-            --text-main: #cad3f5; 
-            --text-muted: #8aadf4;
-            --border-color: #363a4f;
-            --accent-green: #a6da95; 
-            --accent-red: #ed8796;
-            --accent-blue: #8aadf4;
-            --toggle-bg: #494d64;
-
-            /* Statusline Dark */
-            --sl-bg: #181926;
-            --sl-mode-bg: var(--accent-green);
-            --sl-mode-fg: #181926;
+            --bg: #1a1b26; --bg-panel: #24283b; --fg: #c0caf5; --fg-muted: #565f89;
+            --border: #414868; --accent-green: #9ece6a; --accent-red: #f7768e;
+            --accent-blue: #7aa2f7; --lualine-a: #7aa2f7; --lualine-b: #3b4261;
+            --lualine-c: #1f2335; --lualine-fg: #1d202f;
         }
-
-        * { box-sizing: border-box; }
 
         body {
             margin: 0; display: flex; flex-direction: column; height: 100vh;
-            background-color: var(--bg-color); color: var(--text-main);
+            background-color: var(--bg); color: var(--fg);
             font-family: 'JetBrains Mono', monospace;
-            transition: background-color 0.3s, color 0.3s; overflow: hidden;
+            transition: background-color 0.2s, color 0.2s; overflow: hidden;
         }
 
-        /* --- UI Controls --- */
-        .controls {
-            display: flex; gap: 15px; padding: 12px 20px; background: var(--panel-bg);
-            border-bottom: 2px solid var(--border-color); align-items: center; 
-            flex-wrap: wrap; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        select, button {
-            padding: 8px 14px; font-size: 14px; border-radius: 4px;
-            border: 1px solid var(--border-color); background: var(--bg-color);
-            color: var(--text-main); cursor: pointer; transition: all 0.2s;
-            font-family: inherit; font-weight: 700;
-        }
-
-        select {
-            appearance: none; 
-            padding-right: 30px;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-            background-repeat: no-repeat;
-            background-position-x: 95%;
-            background-position-y: 50%;
-        }
-
-        button:hover, select:hover { 
-            border-color: var(--accent-blue);
-            transform: translateY(-1px);
+        /* --- Topbar (Tabline) --- */
+        .tabline {
+            display: flex; gap: 10px; padding: 10px 20px; background: var(--bg-panel);
+            border-bottom: 2px solid var(--border); align-items: center; z-index: 10;
         }
         
-        /* Toggles */
-        .toggle-wrapper { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; font-weight: 700; }
-        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        button {
+            padding: 6px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: bold;
+            border-radius: 4px; border: 1px solid var(--border); background: var(--bg);
+            color: var(--fg); cursor: pointer; transition: 0.2s;
+        }
+        button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+        .toggle-wrapper { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; color: var(--fg-muted); }
+        .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--toggle-bg); transition: .3s; border-radius: 22px;
-            border: 1px solid var(--border-color);
+            background-color: var(--border); transition: .2s; border-radius: 16px;
         }
         .slider:before {
-            position: absolute; content: ""; height: 14px; width: 14px;
-            left: 3px; bottom: 3px; background-color: var(--panel-bg); 
-            transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            position: absolute; content: ""; height: 10px; width: 10px;
+            left: 3px; bottom: 3px; background-color: var(--bg); transition: .2s; border-radius: 50%;
         }
-        input:checked + .slider { background-color: var(--accent-blue); border-color: var(--accent-blue); }
-        input:checked + .slider:before { transform: translateX(18px); background-color: #ffffff; }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(14px); }
 
-        /* --- Screens --- */
-        .screen {
+        /* --- Buffer (Main Screen) --- */
+        .buffer {
             flex-grow: 1; display: flex; flex-direction: column;
             justify-content: center; align-items: center; text-align: center;
-            user-select: none; width: 100%; padding-bottom: 40px; /* Space for statusline */
+            user-select: none; width: 100%; position: relative;
         }
         #practice-screen, #wackamole-screen { display: none; }
 
-        /* --- Text Styling (Standard Mode) --- */
-        .primary-text { font-size: 4.5rem; font-weight: 800; transition: color 0.1s; letter-spacing: -2px; }
-        .secondary-text { font-size: 1.5rem; color: var(--text-muted); margin-top: 15px; height: 2rem; }
-        .feedback-text { font-size: 1.2rem; color: var(--accent-red); margin-top: 15px; height: 1.5rem; font-weight: bold; opacity: 0; transition: opacity 0.2s; }
-        
-        .text-success { color: var(--accent-green) !important; }
-        .text-error { color: var(--accent-red) !important; }
+        /* --- Validation Overlay --- */
+        #validation-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 1000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        #val-debug {
+            margin-top: 10px; font-family: monospace; color: var(--fg-muted); font-size: 1.2rem;
+            background: var(--bg-panel); padding: 5px 10px; border-radius: 4px; border: 1px solid var(--border);
+        }
 
+        /* Standard Mode Styling */
+        .primary-text { font-size: 4rem; font-weight: 800; transition: color 0.1s; letter-spacing: -1px; }
+        .secondary-text { font-size: 1.2rem; color: var(--fg-muted); margin-top: 15px; height: 2rem; }
+        
+        /* Error Animations */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-8px); }
-            40%, 80% { transform: translateX(8px); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
         }
-        .shake-anim { animation: shake 0.3s ease-in-out; }
+        .error-shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+            color: var(--accent-red) !important;
+            border-color: var(--accent-red) !important;
+        }
+        .text-success { color: var(--accent-green) !important; }
 
-        /* --- Whack-a-Mole Styling --- */
-        #wm-grid {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; max-width: 800px;
-        }
+        /* Whack-a-Mole Carousel Styling */
+        #wm-viewport { overflow: hidden; width: 90%; max-width: 1000px; padding: 20px 0; display: flex; justify-content: flex-start; }
+        #wm-track { display: flex; gap: 20px; align-items: center; }
         .wm-item {
-            font-size: 2rem; font-weight: 700; padding: 15px 25px;
-            background: var(--panel-bg); border: 2px solid var(--border-color);
-            border-radius: 6px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0.6; transform: scale(0.95);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 1.8rem; font-weight: bold; padding: 15px 25px;
+            background: var(--bg-panel); border: 2px solid var(--border);
+            border-radius: 8px; white-space: nowrap; opacity: 0.5; transform: scale(0.9);
+            min-width: 200px; text-align: center;
         }
-        .wm-item.active { 
-            opacity: 1; border-color: var(--accent-blue); 
-            transform: scale(1.1); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); 
-            color: var(--accent-blue);
-        }
-        .wm-item.error { color: var(--accent-red); border-color: var(--accent-red); animation: shake 0.3s; }
-        
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px) scale(0.9); }
-            to { opacity: 0.6; transform: translateX(0) scale(0.95); }
-        }
-        .wm-item.new-item { animation: slideInRight 0.3s ease-out forwards; }
+        .wm-item.active { border-color: var(--accent-blue); opacity: 1; transform: scale(1.1); color: var(--accent-blue); box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+        .wm-hint-text { display: none; color: var(--accent-red); font-size: 1rem; margin-top: 8px; font-weight: normal; }
+        #wm-number-string { font-size: 4rem; letter-spacing: 5px; }
 
-        #wm-number-string { font-size: 4rem; letter-spacing: 12px; }
-        .num-target { text-decoration: underline; color: var(--accent-blue); font-weight: 800; }
-        .num-upcoming { color: var(--text-muted); }
+        /* --- Lualine (Statusbar) --- */
+        .lualine { display: flex; height: 28px; font-size: 12px; font-weight: bold; background: var(--lualine-c); color: var(--fg-muted); user-select: none; }
+        .lua-section { display: flex; align-items: center; padding: 0 15px; }
+        .lua-a { background: var(--lualine-a); color: var(--lualine-fg); }
+        .lua-b { background: var(--lualine-b); color: var(--lualine-fg); }
+        .lua-c { flex-grow: 1; justify-content: center; }
+        .lua-x { background: var(--lualine-b); color: var(--lualine-fg); }
+        .lua-y { background: var(--bg-panel); color: var(--fg); border-top: 1px solid var(--border); }
+        .lua-z { background: var(--lualine-a); color: var(--lualine-fg); }
 
-        /* --- Vim Statusline --- */
-        .statusline {
-            position: fixed; bottom: 0; width: 100%; height: 35px;
-            background: var(--sl-bg); display: flex; justify-content: space-between;
-            align-items: center; font-size: 13px; font-weight: 700; z-index: 20;
-            border-top: 1px solid var(--border-color);
+        /* --- Telescope Modal --- */
+        #telescope-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 99; backdrop-filter: blur(3px); }
+        #telescope-modal {
+            display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); width: 500px; background: var(--bg); border: 2px solid var(--accent-blue);
+            border-radius: 8px; z-index: 100; box-shadow: 0 15px 35px rgba(0,0,0,0.4); flex-direction: column; overflow: hidden;
         }
-        .sl-section { display: flex; align-items: center; height: 100%; padding: 0 15px; }
-        .sl-mode { background: var(--sl-mode-bg); color: var(--sl-mode-fg); text-transform: uppercase; }
-        .sl-center { color: var(--text-muted); flex-grow: 1; justify-content: center; }
-        .sl-right { gap: 15px; }
-        .sl-item span { color: var(--text-main); margin-left: 5px; }
+        .telescope-header { padding: 10px 15px; background: var(--bg-panel); border-bottom: 1px solid var(--border); color: var(--accent-blue); font-weight: bold; }
+        .telescope-list { max-height: 400px; overflow-y: auto; padding: 10px; }
+        .telescope-item { padding: 10px 15px; cursor: pointer; border-radius: 4px; color: var(--fg); display: flex; justify-content: space-between; }
+        .telescope-item:hover { background: var(--bg-panel); color: var(--accent-blue); }
+        .telescope-item.selected { background: var(--accent-blue); color: var(--bg); font-weight: bold; }
     </style>
 </head>
-<body class="dark-mode"> <div class="controls">
-        <select id="mode-select">
-            <optgroup label="Standard Training">
-                <option value="1">1. Mac/Gen Shortcuts</option>
-                <option value="2">2. Kanata Numpad</option>
-                <option value="3">3. AeroSpace vs Mac</option>
-                <option value="4">4. Advanced Navigation</option>
-                <option value="0">0. Mixed (All Standard)</option>
-            </optgroup>
-            <optgroup label="Whack-a-Mole (Flow)">
-                <option value="5">5. Cmd Only</option>
-                <option value="6">6. Alt Only</option>
-                <option value="7">7. Mixed Modifiers</option>
-                <option value="8">8. Continuous Numbers</option>
-                <option value="9">9. Modifier Taps (a to ;)</option>
-            </optgroup>
-        </select>
+<body class="dark-mode">
 
+    <div class="tabline">
+        <button id="btn-mode-select">🔭 Find Mode (<span id="tab-mode-label">Mode 1</span>)</button>
+        <button id="restart-btn">🔄 Restart</button>
+        <button id="pause-btn">⏸ Pause</button>
+        <button id="dark-toggle" style="margin-left: auto;">🌗 Theme</button>
+
+        <label class="toggle-wrapper" id="lock-toggle-container">
+            Auto-Lock <div class="switch"><input type="checkbox" id="auto-lock-toggle" checked><span class="slider"></span></div>
+        </label>
         <label class="toggle-wrapper" id="hr-toggle-container">
-            <div class="switch"><input type="checkbox" id="homerow-toggle" checked><span class="slider"></span></div>
-            Req. Alternation
+            Alternation <div class="switch"><input type="checkbox" id="homerow-toggle" checked><span class="slider"></span></div>
         </label>
-
         <label class="toggle-wrapper" id="hints-toggle-container">
-            <div class="switch"><input type="checkbox" id="hide-hints-toggle"><span class="slider"></span></div>
-            Hide Hints
+            Hide Hints <div class="switch"><input type="checkbox" id="hide-hints-toggle"><span class="slider"></span></div>
         </label>
-
-        <button id="dark-toggle">? Theme</button>
-        <button id="pause-btn">? Pause</button>
-        <button id="restart-btn">? Restart</button>
     </div>
 
-    <div id="validation-screen" class="screen">
-        <div class="primary-text" style="font-size: 3rem;">Validation Check</div>
-        <div class="secondary-text">Press the <b style="color:var(--accent-blue);">/</b> key to continue.</div>
-        <div class="feedback-text" id="val-feedback" style="opacity: 1; color: var(--text-muted);">
-            (Reminder: Hyper + p activates practice layer)
-        </div>
-        <button id="corne-bypass-btn" style="margin-top: 30px; font-size: 1.2rem; border-color: var(--accent-blue);">Bypass (Using Corne)</button>
+    <div id="validation-overlay">
+        <div class="primary-text" style="font-size: 3rem;">-- KANATA LOCK --</div>
+        <div class="secondary-text">Press <b style="color:var(--accent-blue);">/</b> to validate & unlock.</div>
+        <div id="val-debug">Last key received: None</div>
+        <div id="val-feedback" style="margin-top:20px; font-weight:bold; height:1.5rem; color:var(--accent-red);"></div>
+        <button id="corne-bypass-btn" style="margin-top: 30px;">[ Bypass: Corne Mode / Force Unlock ]</button>
     </div>
 
-    <div id="practice-screen" class="screen">
+    <div id="practice-screen" class="buffer">
         <div id="meaning-display" class="primary-text"></div>
         <div id="keys-display" class="secondary-text"></div>
-        <div id="feedback-display" class="feedback-text"></div>
     </div>
 
-    <div id="wackamole-screen" class="screen">
-        <div id="wm-grid"></div>
-        <div id="wm-number-string" style="display:none;"></div>
+    <div id="wackamole-screen" class="buffer">
+        <div id="wm-viewport">
+            <div id="wm-track"></div>
+        </div>
+        <div id="wm-number-string" class="primary-text" style="display:none;"></div>
     </div>
 
-    <div class="statusline" id="global-stats">
-        <div class="sl-section sl-mode" id="sl-mode-indicator">NORMAL</div>
-        <div class="sl-section sl-center">
-            Most Missed: <span id="stat-missed" style="color: var(--accent-red); margin-left: 8px;">None</span>
-        </div>
-        <div class="sl-section sl-right">
-            <div class="sl-item">Acc:<span id="stat-acc">100%</span></div>
-            <div class="sl-item">Total:<span id="stat-total">0</span></div>
-            <div class="sl-item" id="wm-stats" style="display: none;">SPM:<span id="wm-spm">0</span></div>
-        </div>
+    <div class="lualine">
+        <div class="lua-section lua-a" id="lua-mode">NORMAL</div>
+        <div class="lua-section lua-b" id="lua-file">kanata_trainer.html</div>
+        <div class="lua-section lua-c" id="lua-cmd" style="color:var(--accent-red); font-weight:bold;"></div>
+        <div class="lua-section lua-x" id="lua-missed">Missed: None</div>
+        <div class="lua-section lua-y" id="lua-spm">SPM: 0</div>
+        <div class="lua-section lua-z" id="lua-acc">Acc: 100% | 0/0</div>
+    </div>
+
+    <div id="telescope-overlay"></div>
+    <div id="telescope-modal">
+        <div class="telescope-header">Telescope: Select Training Mode</div>
+        <div class="telescope-list" id="telescope-list"></div>
     </div>
 
     <script>
-        // --- Data Dictionaries ---
+        // --- Unified Dictionary Data ---
         const homeRowKeys = [
-            { meaning: 'Home Row', keys: 'a', target: 'a' }, { meaning: 'Home Row', keys: 's', target: 's' },
-            { meaning: 'Home Row', keys: 'd', target: 'd' }, { meaning: 'Home Row', keys: 'f', target: 'f' },
-            { meaning: 'Home Row', keys: 'g', target: 'g' }, { meaning: 'Home Row', keys: 'h', target: 'h' },
-            { meaning: 'Home Row', keys: 'j', target: 'j' }, { meaning: 'Home Row', keys: 'k', target: 'k' },
-            { meaning: 'Home Row', keys: 'l', target: 'l' }, { meaning: 'Home Row', keys: ',', target: ',' },
-            { meaning: 'Home Row', keys: '.', target: '.' }
+            { meaning: 'Home Row (a)', keys: 'a', target: 'a' }, { meaning: 'Home Row (s)', keys: 's', target: 's' },
+            { meaning: 'Home Row (d)', keys: 'd', target: 'd' }, { meaning: 'Home Row (f)', keys: 'f', target: 'f' },
+            { meaning: 'Home Row (g)', keys: 'g', target: 'g' }, { meaning: 'Home Row (h)', keys: 'h', target: 'h' },
+            { meaning: 'Home Row (j)', keys: 'j', target: 'j' }, { meaning: 'Home Row (k)', keys: 'k', target: 'k' },
+            { meaning: 'Home Row (l)', keys: 'l', target: 'l' }, { meaning: 'Home Row (,)', keys: ',', target: ',' },
+            { meaning: 'Home Row (.)', keys: '.', target: '.' }
         ];
 
         const dicts = {
@@ -246,8 +202,7 @@
                 { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' }, { meaning: 'Copy', keys: 'Cmd + c', target: 'cmd+c' },
                 { meaning: 'Paste', keys: 'Cmd + v', target: 'cmd+v' }, { meaning: 'Undo', keys: 'Cmd + z', target: 'cmd+z' },
                 { meaning: 'Cut', keys: 'Cmd + x', target: 'cmd+x' }, { meaning: 'Save', keys: 'Cmd + s', target: 'cmd+s' },
-                { meaning: 'Reopen Tab', keys: 'Cmd + Shift + t', target: 'cmd+shift+t' },
-                { meaning: 'Hidden Files', keys: 'Cmd + Shift + .', target: 'cmd+shift+.' },
+                { meaning: 'Reopen Tab', keys: 'Cmd + Shift + t', target: 'cmd+shift+t' }, { meaning: 'Hidden Files', keys: 'Cmd + Shift + .', target: 'cmd+shift+.' },
                 { meaning: 'Zoom In', keys: 'Cmd + +', target: 'cmd+=' }, { meaning: 'Zoom Out', keys: 'Cmd + -', target: 'cmd+-' },
             ],
             2: [
@@ -263,7 +218,18 @@
                 { meaning: 'Workspace 5', keys: 'Alt + 5', target: 'alt+5' }, { meaning: 'Workspace 6', keys: 'Alt + 6', target: 'alt+6' },
                 { meaning: 'Workspace Q', keys: 'Alt + q', target: 'alt+q' }, { meaning: 'Workspace W', keys: 'Alt + w', target: 'alt+w' },
                 { meaning: 'Quit App', keys: 'Cmd + q', target: 'cmd+q' }, { meaning: 'Close Window', keys: 'Cmd + w', target: 'cmd+w' },
-            ]
+            ],
+         10: [
+            { meaning: 'Outer Thumb', keys: '← Shift', target: 'f13' },
+            { meaning: 'Mid Thumb', keys: '← L1/Enter', target: 'f14' },
+            { meaning: 'Inner Thumb', keys: '← L3/Space', target: 'f15' },
+            { meaning: 'Inner Thumb', keys: 'Space/L3 →', target: 'f16' },
+            { meaning: 'Mid Thumb', keys: 'Enter →', target: 'f17' },
+            { meaning: 'Outer Thumb', keys: 'Bksp →', target: 'insert' }, // Replaced F18
+            { meaning: 'Pinky', keys: '← L1/Esc', target: 'f19' },
+            { meaning: 'Index', keys: '← L4/G', target: 'f20' },
+            { meaning: 'Index', keys: 'H/L4 →', target: 'home' } // Replaced F21/F22
+        ],       
         };
 
         dicts[4] = [...dicts[3], 
@@ -273,49 +239,70 @@
         ];
         dicts[0] = [...dicts[1], ...dicts[2], ...dicts[4]];
 
-        dicts[5] = ['cmd+a', 'cmd+t', 'cmd+o', 'cmd+p', 'cmd+q', 'cmd+w', 'cmd+c', 'cmd+v', 'cmd+z', 'cmd+x', 'cmd+s'];
-        dicts[6] = ['alt+1', 'alt+2', 'alt+3', 'alt+4', 'alt+q', 'alt+w', 'alt+h', 'alt+j', 'alt+k', 'alt+l'];
-        dicts[7] = [...dicts[5], ...dicts[6], 'ctrl+c', 'ctrl+z', 'ctrl+r']; 
-        dicts[8] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']; 
-        dicts[9] = ['L_Shift', 'L_Ctrl', 'L_Alt', 'L_Cmd', 'R_Cmd', 'R_Alt', 'R_Ctrl', 'R_Shift'];
+        dicts[5] = dicts[1].filter(d => d.target.startsWith('cmd') && !d.target.includes('shift'));
+        dicts[6] = dicts[4].filter(d => d.target.startsWith('alt') && !d.target.includes('shift'));
+        dicts[7] = [...dicts[5], ...dicts[6], {meaning:'Interrupt', keys:'Ctrl + c', target:'ctrl+c'}, {meaning:'Suspend', keys:'Ctrl + z', target:'ctrl+z'}];
+        dicts[8] = Array.from({length: 10}, (_, i) => ({meaning: `Number ${i===9?0:i+1}`, keys: `${i===9?0:i+1}`, target: `${i===9?0:i+1}`}));
+        dicts[9] = [
+            {meaning: 'Left Shift', keys: 'a', target: 'a'}, {meaning: 'Left Ctrl', keys: 's', target: 's'},
+            {meaning: 'Left Alt', keys: 'd', target: 'd'}, {meaning: 'Left Cmd', keys: 'f', target: 'f'},
+            {meaning: 'Right Cmd', keys: 'j', target: 'j'}, {meaning: 'Right Alt', keys: 'k', target: 'k'},
+            {meaning: 'Right Ctrl', keys: 'l', target: 'l'}, {meaning: 'Right Shift', keys: ';', target: ';'}
+        ];
 
-        const modTapTargets = { 'L_Shift': 'a', 'L_Ctrl': 's', 'L_Alt': 'd', 'L_Cmd': 'f', 'R_Cmd': 'j', 'R_Alt': 'k', 'R_Ctrl': 'l', 'R_Shift': ';' };
-        const modMap = { 'F13': 'shift', 'F20': 'shift', 'F14': 'ctrl', 'F19': 'ctrl', 'F15': 'alt', 'F18': 'alt', 'F16': 'cmd', 'F17': 'cmd' };
-        
-        const unshiftMap = {
-            '~': '`', '!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
-            '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\', ':': ';', '"': "'", '<': ',', '>': '.', '?': '/'
+        const modeLabels = {
+            1: "1. Mac / Gen Shortcuts", 2: "2. Kanata Numpad", 3: "3. AeroSpace vs Mac",
+            4: "4. Advanced Navigation", 0: "0. Mixed (All Standard)", 
+            5: "5. Whack-a-Mole (Cmd)", 6: "6. Whack-a-Mole (Alt)", 7: "7. Whack-a-Mole (Mixed)",
+            8: "8. Continuous Numbers", 9: "9. Modifier Taps (a to ;)", 10: "10. Corne Physical Layout"
         };
+
+        const modMap = { 'F13': 'shift', 'F20': 'shift', 'F14': 'ctrl', 'F19': 'ctrl', 'F15': 'alt', 'F18': 'alt', 'F16': 'cmd', 'F17': 'cmd' };
+        const unshiftMap = { '~':'`', '!':'1', '@':'2', '#':'3', '$':'4', '%':'5', '^':'6', '&':'7', '*':'8', '(':'9', ')':'0', '_':'-', '+':'=', '{':'[', '}':']', '|':'\\', ':':';', '"':"'", '<':',', '>':'.', '?':'/' };
 
         // --- Application State ---
         let isValidated = false; let activeMods = new Set(); let activeMode = 1;
         let shuffleBag = []; let currentPrompt = null; let isShortcutTurn = true; 
-        let penaltyCount = 0; let isPaused = false;
+        let penaltyCount = 0; let isAnimating = false;
         let stats = { correct: 0, total: 0, misses: {} };
         let wmSequence = []; let wmStartTime = null;
 
         // --- DOM Elements ---
-        const screens = {
-            val: document.getElementById('validation-screen'),
-            prac: document.getElementById('practice-screen'),
-            wm: document.getElementById('wackamole-screen')
-        };
+        const screens = { val: document.getElementById('validation-overlay'), prac: document.getElementById('practice-screen'), wm: document.getElementById('wackamole-screen') };
         const displayMeaning = document.getElementById('meaning-display');
         const displayKeys = document.getElementById('keys-display');
-        const displayFeedback = document.getElementById('feedback-display');
+        const wmTrack = document.getElementById('wm-track');
+        const wmNumString = document.getElementById('wm-number-string');
+        const lua = { cmd: document.getElementById('lua-cmd'), missed: document.getElementById('lua-missed'), spm: document.getElementById('lua-spm'), acc: document.getElementById('lua-acc'), mode: document.getElementById('lua-mode') };
         const hrToggle = document.getElementById('homerow-toggle');
         const hintsToggle = document.getElementById('hide-hints-toggle');
-        const wmGrid = document.getElementById('wm-grid');
-        const wmNumString = document.getElementById('wm-number-string');
-        const slMode = document.getElementById('sl-mode-indicator');
+        const autoLockToggle = document.getElementById('auto-lock-toggle');
 
-        // --- Core Logic ---
+        // --- Core Validation Logic ---
+        function requireValidation() {
+            isValidated = false;
+            document.getElementById('val-feedback').innerText = "";
+            document.getElementById('val-debug').innerText = "Last key received: None";
+            screens.val.style.display = 'flex';
+        }
+
+        function unlockGame() {
+            isValidated = true;
+            screens.val.style.display = 'none';
+            if(wmStartTime === null && activeMode >= 5) wmStartTime = Date.now();
+        }
+
+        window.addEventListener('blur', () => { 
+            if (isValidated && autoLockToggle.checked) {
+                requireValidation(); 
+            }
+        });
+
+        // --- Logic Helpers ---
         function formatPressedString(mods, key) {
             let arr = [];
-            if (mods.has('cmd')) arr.push('Cmd');
-            if (mods.has('ctrl')) arr.push('Ctrl');
-            if (mods.has('alt')) arr.push('Alt');
-            if (mods.has('shift')) arr.push('Shift');
+            if (mods.has('cmd')) arr.push('Cmd'); if (mods.has('ctrl')) arr.push('Ctrl');
+            if (mods.has('alt')) arr.push('Alt'); if (mods.has('shift')) arr.push('Shift');
             if (key !== 'unidentified' && !modMap[key.toUpperCase()]) arr.push(key);
             return arr.join(' + ') || "Unknown";
         }
@@ -323,231 +310,223 @@
         function getNextFromBag(dict) {
             if (shuffleBag.length === 0) {
                 let arr = [...dict];
-                for (let i = arr.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [arr[i], arr[j]] = [arr[j], arr[i]];
-                }
+                for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
                 shuffleBag = arr;
             }
             return shuffleBag.pop();
         }
 
-        function unlockGame() { isValidated = true; resetGame(); }
-
         function resetGame() {
-            stats = { correct: 0, total: 0, misses: {} };
-            shuffleBag = []; activeMods.clear(); penaltyCount = 0;
-            displayFeedback.style.opacity = '0';
-            wmStartTime = null;
+            stats = { correct: 0, total: 0, misses: {} }; shuffleBag = []; activeMods.clear(); penaltyCount = 0;
+            lua.cmd.innerText = ""; wmStartTime = null;
+
+            lua.mode.innerText = activeMode >= 5 ? "WHACK-A-MOLE" : "STANDARD";
+            lua.mode.style.background = activeMode >= 5 ? "var(--accent-red)" : "var(--lualine-a)";
 
             if (activeMode >= 5) {
-                screens.val.style.display = 'none'; screens.prac.style.display = 'none'; screens.wm.style.display = 'flex';
+                screens.prac.style.display = 'none'; screens.wm.style.display = 'flex';
                 document.getElementById('hr-toggle-container').style.display = 'none';
-                document.getElementById('hints-toggle-container').style.display = 'none';
-                document.getElementById('wm-stats').style.display = 'block';
-                slMode.innerText = "VISUAL";
-                slMode.style.background = "var(--accent-blue)";
                 initWhackAMole();
             } else {
-                screens.val.style.display = 'none'; screens.prac.style.display = 'flex'; screens.wm.style.display = 'none';
+                screens.prac.style.display = 'flex'; screens.wm.style.display = 'none';
                 document.getElementById('hr-toggle-container').style.display = 'flex';
-                document.getElementById('hints-toggle-container').style.display = 'flex';
-                document.getElementById('wm-stats').style.display = 'none';
-                slMode.innerText = "NORMAL";
-                slMode.style.background = "var(--accent-green)";
-                updateStatsUI();
-                setNextPrompt();
+                updateStatsUI(); setNextPrompt();
             }
         }
 
         function updateStatsUI() {
             const acc = stats.total === 0 ? 100 : Math.round((stats.correct / stats.total) * 100);
-            document.getElementById('stat-acc').innerText = `${acc}%`;
-            document.getElementById('stat-total').innerText = stats.total;
-            if (Object.keys(stats.misses).length === 0) {
-                document.getElementById('stat-missed').innerText = "None";
-            } else {
+            lua.acc.innerText = `Acc: ${acc}% | ${stats.correct}/${stats.total}`;
+            const elapsedMins = wmStartTime ? (Date.now() - wmStartTime) / 60000 : 0;
+            lua.spm.innerText = `SPM: ${elapsedMins > 0 ? Math.round(stats.correct / elapsedMins) : 0}`;
+
+            if (Object.keys(stats.misses).length === 0) lua.missed.innerText = "Missed: None";
+            else {
                 const worst = Object.keys(stats.misses).reduce((a, b) => stats.misses[a] > stats.misses[b] ? a : b);
-                document.getElementById('stat-missed').innerText = `${worst} (${stats.misses[worst]})`;
+                lua.missed.innerText = `Worst: ${worst} (${stats.misses[worst]})`;
             }
         }
 
         function setNextPrompt() {
-            if (isPaused) return;
             displayMeaning.className = 'primary-text';
-
-            if (hrToggle.checked && !isShortcutTurn) {
-                currentPrompt = homeRowKeys[Math.floor(Math.random() * homeRowKeys.length)];
-            } else {
+            if (hrToggle.checked && !isShortcutTurn) currentPrompt = homeRowKeys[Math.floor(Math.random() * homeRowKeys.length)];
+            else {
                 if (penaltyCount > 0) penaltyCount--; 
                 else currentPrompt = getNextFromBag(dicts[activeMode]);
             }
-
-            displayMeaning.innerText = currentPrompt.meaning;
+            displayMeaning.innerText = hintsToggle.checked ? currentPrompt.meaning : currentPrompt.keys;
             displayKeys.innerText = currentPrompt.keys;
             displayKeys.style.visibility = hintsToggle.checked ? 'hidden' : 'visible';
         }
 
-        function initWhackAMole() {
-            wmSequence = [];
-            for(let i=0; i<8; i++) wmSequence.push(getNextFromBag(dicts[activeMode]));
-            wmGrid.innerHTML = '';
-            renderWM(true);
+        // --- Whack-a-Mole Engine ---
+        function createWMNode(item, isActive) {
+            let div = document.createElement('div');
+            div.className = `wm-item ${isActive ? 'active' : ''}`;
+            let mainText = document.createElement('div');
+            mainText.innerText = hintsToggle.checked ? item.meaning : item.keys;
+            div.appendChild(mainText);
+            let hintText = document.createElement('div');
+            hintText.className = 'wm-hint-text';
+            hintText.innerText = item.keys;
+            div.appendChild(hintText);
+            return div;
         }
 
-        function renderWM(isInitial = false) {
+        function initWhackAMole() {
+            wmSequence = []; for(let i=0; i<8; i++) wmSequence.push(getNextFromBag(dicts[activeMode]));
             if (activeMode === 8) {
-                wmGrid.style.display = 'none'; wmNumString.style.display = 'block';
-                wmNumString.innerHTML = `<span class="num-target">${wmSequence[0]}</span> <span class="num-upcoming">${wmSequence.slice(1, 6).join(' ')}</span>`;
+                wmTrack.style.display = 'none'; wmNumString.style.display = 'block';
+                renderNumString();
             } else {
-                wmGrid.style.display = 'flex'; wmNumString.style.display = 'none';
-                
-                if (isInitial) {
-                    wmSequence.slice(0, 6).forEach((item, idx) => {
-                        let div = document.createElement('div');
-                        div.className = `wm-item ${idx === 0 ? 'active' : ''}`;
-                        div.innerText = activeMode === 9 ? item : item.replace(/\+/g, ' + ').replace(/\b\w/g, c => c.toUpperCase());
-                        wmGrid.appendChild(div);
-                    });
-                } else {
-                    // Animation Logic for Continuous Flow
-                    if (wmGrid.firstChild) wmGrid.removeChild(wmGrid.firstChild);
-                    
-                    Array.from(wmGrid.children).forEach((child, idx) => {
-                        child.className = `wm-item ${idx === 0 ? 'active' : ''}`;
-                    });
-
-                    let newItem = wmSequence[5];
-                    let div = document.createElement('div');
-                    div.className = 'wm-item new-item';
-                    div.innerText = activeMode === 9 ? newItem : newItem.replace(/\+/g, ' + ').replace(/\b\w/g, c => c.toUpperCase());
-                    wmGrid.appendChild(div);
-                    
-                    setTimeout(() => div.classList.remove('new-item'), 300);
-                }
+                wmTrack.style.display = 'flex'; wmNumString.style.display = 'none';
+                wmTrack.innerHTML = ''; wmTrack.style.transform = 'translateX(0)';
+                wmSequence.slice(0, 6).forEach((item, idx) => {
+                    wmTrack.appendChild(createWMNode(item, idx === 0));
+                });
             }
+        }
+
+        function renderNumString() {
+            wmNumString.innerHTML = `<span style="color:var(--accent-blue);text-decoration:underline;">${wmSequence[0].keys}</span> <span style="color:var(--fg-muted);">${wmSequence.slice(1, 6).map(x=>x.keys).join(' ')}</span>`;
         }
 
         function advanceWM(isCorrect) {
             if (!wmStartTime) wmStartTime = Date.now();
             stats.total++;
-            
             if (isCorrect) {
                 stats.correct++;
-                wmSequence.shift();
-                wmSequence.push(getNextFromBag(dicts[activeMode]));
-                renderWM();
-            } else {
                 if (activeMode !== 8) {
-                    wmGrid.firstChild.classList.add('error');
-                    setTimeout(() => { if(wmGrid.firstChild) wmGrid.firstChild.classList.remove('error'); }, 300);
+                    const activeItem = wmTrack.querySelector('.active') || wmTrack.firstElementChild;
+                    if (!activeItem) return;
+                    
+                    activeItem.classList.remove('active');
+                    const nextDOM = activeItem.nextElementSibling;
+                    if (nextDOM) nextDOM.classList.add('active');
+
+                    // Non-blocking slide technique
+                    activeItem.style.transition = 'margin-left 0.15s ease-out, opacity 0.15s ease-out';
+                    activeItem.style.marginLeft = `-${activeItem.offsetWidth + 20}px`;
+                    activeItem.style.opacity = '0';
+                    
+                    wmSequence.shift(); 
+                    wmSequence.push(getNextFromBag(dicts[activeMode]));
+                    wmTrack.appendChild(createWMNode(wmSequence[wmSequence.length - 1], false));
+
+                    setTimeout(() => {
+                        if (activeItem.parentNode) activeItem.remove();
+                    }, 150);
+                } else {
+                    wmSequence.shift(); wmSequence.push(getNextFromBag(dicts[activeMode])); renderNumString();
+                }
+            } else {
+                const activeItem = wmTrack.querySelector('.active') || wmTrack.firstElementChild;
+                if (activeMode !== 8 && activeItem) {
+                    activeItem.classList.remove('error-shake');
+                    void activeItem.offsetWidth; 
+                    activeItem.classList.add('error-shake');
+                    if (hintsToggle.checked) activeItem.querySelector('.wm-hint-text').style.display = 'block';
                 }
             }
-            
-            const elapsedMins = (Date.now() - wmStartTime) / 60000;
-            document.getElementById('wm-spm').innerText = elapsedMins > 0 ? Math.round(stats.correct / elapsedMins) : 0;
             updateStatsUI();
         }
 
         // --- Input Handling ---
         window.addEventListener('keydown', (e) => {
-            e.preventDefault(); 
-            if (e.repeat || isPaused) return;
+            e.preventDefault(); if (e.repeat) return;
 
+            // Phase 1: Lock Check & Diagnostics
             if (!isValidated) {
-                if (e.key === 'd') unlockGame();
-                else if (e.key === '/') {
-                    document.getElementById('val-feedback').innerText = "?? Standard keyboard detected. Activate Practice Layer (Hyper + p).";
-                    document.getElementById('val-feedback').style.opacity = "1";
+                document.getElementById('val-debug').innerText = `Last key received: [ ${e.key} ]`;
+                
+                if (e.key === 'd' || e.key === 'Escape') {
+                    unlockGame();
+                } else if (e.key === '/') {
+                    document.getElementById('val-feedback').innerText = "ERR: Received literal '/'. Practice layer inactive.";
+                } else {
+                    document.getElementById('val-feedback').innerText = "ERR: Waiting for 'd' (from Kanata '/') or 'Escape' to bypass.";
                 }
                 return;
             }
 
-            if (modMap[e.key]) { activeMods.add(modMap[e.key]); return; }
-
-            let key = unshiftMap[e.key] || e.key;
-            key = key.toLowerCase();
-
-            if (activeMode === 9) {
-                advanceWM(key === modTapTargets[wmSequence[0]]);
-                return;
+            // Phase 2: Input Logic
+            if (activeMode !== 10 && modMap[e.key]) { 
+                activeMods.add(modMap[e.key]); 
+                return; 
             }
 
+            let key = unshiftMap[e.key] || e.key; key = key.toLowerCase();
             let chordArr = [];
-            if (activeMods.has('cmd')) chordArr.push('cmd');
-            if (activeMods.has('ctrl')) chordArr.push('ctrl');
-            if (activeMods.has('alt')) chordArr.push('alt');
-            if (activeMods.has('shift')) chordArr.push('shift');
-            chordArr.push(key);
+            
+            if (activeMode !== 10) {
+                if (activeMods.has('cmd')) chordArr.push('cmd'); if (activeMods.has('ctrl')) chordArr.push('ctrl');
+                if (activeMods.has('alt')) chordArr.push('alt'); if (activeMods.has('shift')) chordArr.push('shift');
+            }
+            chordArr.push(key); 
             let pressedString = chordArr.join('+');
 
-            if (activeMode >= 5 && activeMode <= 8) {
-                advanceWM(pressedString === wmSequence[0]);
-                return;
+            if ((activeMode >= 5 && activeMode <= 8) || activeMode === 10) { 
+                advanceWM(pressedString === wmSequence[0].target || key === wmSequence[0].target); 
+                return; 
             }
+            if (activeMode === 9) { advanceWM(key === wmSequence[0].target); return; }
 
             if (pressedString === currentPrompt.target) {
-                displayMeaning.className = 'primary-text text-success';
-                displayFeedback.style.opacity = '0';
-                stats.correct++; stats.total++;
-                if (hrToggle.checked) isShortcutTurn = !isShortcutTurn;
-                
+                displayMeaning.className = 'primary-text text-success'; lua.cmd.innerText = "";
+                stats.correct++; stats.total++; if (hrToggle.checked) isShortcutTurn = !isShortcutTurn;
                 setTimeout(setNextPrompt, 150);
             } else {
-                // Ensure error state persists and shakes
-                displayMeaning.className = 'primary-text text-error shake-anim';
-                displayFeedback.innerText = `You pressed: ${formatPressedString(activeMods, e.key)}`;
-                displayFeedback.style.opacity = '1';
+                displayMeaning.classList.remove('error-shake'); void displayMeaning.offsetWidth; displayMeaning.classList.add('error-shake');
+                lua.cmd.innerText = `Pressed: [${formatPressedString(activeMods, e.key)}]`;
                 if (hintsToggle.checked) displayKeys.style.visibility = 'visible';
-
                 stats.total++;
-                if (currentPrompt.meaning !== 'Home Row') {
+                if (!currentPrompt.meaning.includes('Home Row')) {
                     stats.misses[currentPrompt.meaning] = (stats.misses[currentPrompt.meaning] || 0) + 1;
-                    penaltyCount = 3; 
+                    penaltyCount = 3;
                 }
-                // Remove shake animation class after completion to allow re-triggering, keep text red
-                setTimeout(() => { if (!isPaused) displayMeaning.classList.remove('shake-anim'); }, 300);
+                setTimeout(() => { if (isValidated) displayMeaning.className = 'primary-text'; }, 400);
             }
             updateStatsUI();
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (modMap[e.key]) activeMods.delete(modMap[e.key]);
+        window.addEventListener('keyup', (e) => { if (modMap[e.key]) activeMods.delete(modMap[e.key]); });
+
+        // --- Telescope Modal Logic ---
+        const teleOverlay = document.getElementById('telescope-overlay');
+        const teleModal = document.getElementById('telescope-modal');
+        const teleList = document.getElementById('telescope-list');
+
+        document.getElementById('btn-mode-select').addEventListener('click', () => {
+            teleList.innerHTML = '';
+            Object.keys(modeLabels).forEach(k => {
+                let div = document.createElement('div');
+                div.className = `telescope-item ${activeMode == k ? 'selected' : ''}`;
+                div.innerText = modeLabels[k];
+                div.onclick = () => { 
+                    activeMode = parseInt(k); document.getElementById('tab-mode-label').innerText = modeLabels[k]; 
+                    teleModal.style.display = 'none'; teleOverlay.style.display = 'none'; 
+                    isShortcutTurn = true; resetGame(); 
+                    if(autoLockToggle.checked) requireValidation(); 
+                };
+                teleList.appendChild(div);
+            });
+            teleOverlay.style.display = 'block'; teleModal.style.display = 'flex';
         });
 
-        // UI Listeners
+        teleOverlay.addEventListener('click', () => { teleModal.style.display = 'none'; teleOverlay.style.display = 'none'; });
+
+        // UI Event Listeners
         document.getElementById('corne-bypass-btn').addEventListener('click', unlockGame);
-        
-        document.getElementById('mode-select').addEventListener('change', (e) => {
-            activeMode = parseInt(e.target.value);
-            isShortcutTurn = true; resetGame();
-        });
-
         document.getElementById('restart-btn').addEventListener('click', () => { isShortcutTurn = true; resetGame(); });
-        
-        document.getElementById('pause-btn').addEventListener('click', (e) => {
-            isPaused = !isPaused;
-            if (isPaused) {
-                e.target.innerText = '? Resume';
-                slMode.innerText = "PAUSED";
-                slMode.style.background = "var(--accent-red)";
-                if (activeMode >= 5) wmGrid.style.opacity = '0.2';
-                else { displayMeaning.innerText = "Paused"; displayKeys.style.visibility = 'hidden'; displayFeedback.style.opacity = '0'; }
-            } else {
-                e.target.innerText = '? Pause';
-                if (activeMode >= 5) {
-                    slMode.innerText = "VISUAL"; slMode.style.background = "var(--accent-blue)";
-                    wmGrid.style.opacity = '1';
-                } else {
-                    slMode.innerText = "NORMAL"; slMode.style.background = "var(--accent-green)";
-                    setNextPrompt();
-                }
-            }
-        });
-
+        document.getElementById('pause-btn').addEventListener('click', () => { requireValidation(); });
         document.getElementById('dark-toggle').addEventListener('click', () => document.body.classList.toggle('dark-mode'));
         hrToggle.addEventListener('change', () => { isShortcutTurn = true; resetGame(); });
-        hintsToggle.addEventListener('change', () => { if (isValidated && !isPaused) displayKeys.style.visibility = hintsToggle.checked ? 'hidden' : 'visible'; });
+        hintsToggle.addEventListener('change', () => { 
+            if (activeMode >= 5) initWhackAMole();
+            else setNextPrompt(); 
+        });
+
+        requireValidation(); // Start locked
     </script>
 </body>
 </html>
